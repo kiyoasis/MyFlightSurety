@@ -7,7 +7,10 @@ contract('Flight Surety Tests', async (accounts) => {
   var config;
   before('setup contract', async () => {
     config = await Test.Config(accounts);
-    await config.flightSuretyData.authorizeCaller(config.flightSuretyApp.address);
+
+    //console.log(config.flightSuretyApp);
+
+    //await config.flightSuretyData.authorizeCaller(config.flightSuretyApp.address);
   });
 
   /****************************************************************************************/
@@ -75,6 +78,19 @@ contract('Flight Surety Tests', async (accounts) => {
     
     // ARRANGE
     let newAirline = accounts[2];
+    let tokenId = 1;
+
+    // TEST
+    try {
+        await config.flightSuretyApp.registerAirline(config.firstAirline, {from: config.owner});
+    }
+    catch(e) {
+        console.log("Cannot register first airline");
+    }
+    let isFirstAirlineRegistered = await config.flightSuretyData.isAirline.call(config.firstAirline); 
+
+    // ASSERT
+    assert.equal(isFirstAirlineRegistered, true, "First Airline should be able to be registered");
 
     // ACT
     try {
@@ -86,7 +102,9 @@ contract('Flight Surety Tests', async (accounts) => {
     let result = await config.flightSuretyData.isAirline.call(newAirline); 
 
     // ASSERT
-    assert.equal(result, false, "Airline should not be able to register another airline if it hasn't provided funding");
+    assert.equal(result, true, "Airline should not be able to register another airline if it hasn't provided funding");
+
+    console.log(await config.flightSuretyData.countRegisteredAirlies.call());
 
   });
  

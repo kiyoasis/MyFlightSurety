@@ -1,6 +1,7 @@
 import FlightSuretyApp from '../../build/contracts/FlightSuretyApp.json';
 import Config from './config.json';
 import Web3 from 'web3';
+//import Web3 from "https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"
 
 export default class Contract {
     constructor(network, callback) {
