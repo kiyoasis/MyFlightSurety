@@ -14,32 +14,47 @@ contract FlightSuretyData {
 
     // Flight status codees
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
-    uint8 private constant STATUS_CODE_ON_TIME = 10;
-    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
-    uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
-    uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
-    uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
-    struct Flight {
+    struct Airline {
+        string airlineName;
         bool isRegistered;
-        uint8 statusCode;
-        uint256 updatedTimestamp;        
+        bool isFunded;
         address airline;
 
         // Added for consensus
         //address[] multiCalls; // = new address[](0);
     }
-    //mapping(bytes32 => Flight) private flights;
-    mapping(address => Flight) private flights;
+    mapping(address => Airline) airlines;
+    Airline[] airlineArray;
 
-    // Kiyoshi added
+    struct Flight {
+        string flightName;
+        bool isRegistered;
+        uint8 statusCode;
+        uint256 updatedTimestamp;        
+        address airline;
+    }
+    //mapping(address => Flight) private flights;
+    //mapping(bytes32 => Flight) private flights;
+    mapping(string => Flight) private flights;
     Flight[] flightArray;
+
+    struct Passenger {
+        bool isRegistered;
+        address passenger;
+        uint fund;
+        string flightNumber;
+        //address[] airlines;  // = new address[](0);
+    }
+    mapping(address => Passenger) private passengers;
+    Passenger[] passengerArray;
+
     uint tokenId = 1;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
-
+    event FundWithdrawn(address addr, uint value);
 
     /**
     * @dev Constructor
@@ -47,6 +62,14 @@ contract FlightSuretyData {
     */
     constructor() public {
         contractOwner = msg.sender;
+
+        address newAirline = 0xee9fd8f530906e74c9639b107837dba24e542fa8;
+        airlines[newAirline].isRegistered = true;
+        airlines[newAirline].airlineName = "JAL";
+        airlines[newAirline].isFunded = false;
+        airlines[newAirline].airline = newAirline;
+
+        airlineArray.push(airlines[newAirline]);
     }
 
     /********************************************************************************************/
@@ -96,14 +119,42 @@ contract FlightSuretyData {
         operational = mode;
     }
 
-
     function isAirline(address airline) public view returns(bool) {
         require(airline != address(0), "airline address must be a valid address.");
-        return flights[airline].isRegistered;
+        return airlines[airline].isRegistered;
+    }
+
+    function isFlightRegistered(string name) public view returns(bool) {
+        //require(airline != address(0), "airline address must be a valid address.");
+        return flights[name].isRegistered;
     }
 
     function countRegisteredAirlies() public view returns(uint) {
+        return airlineArray.length;
+    }
+
+    function countRegisteredFlights() public view returns(uint) {
         return flightArray.length;
+    }
+
+
+    function getPassengerInfo(address passenger) public view returns (bool, address, uint, string) {
+        return (
+            passengers[passenger].isRegistered,
+            passengers[passenger].passenger,
+            passengers[passenger].fund,
+            passengers[passenger].flightNumber
+        );
+    }
+
+    function getFlightInfo(string flightName) public view returns(string, bool, uint, uint, address) {
+        return (
+            flights[flightName].flightName,
+            flights[flightName].isRegistered,
+            flights[flightName].statusCode,
+            flights[flightName].updatedTimestamp,
+            flights[flightName].airline
+        );
     }
 
 
@@ -116,48 +167,108 @@ contract FlightSuretyData {
     *      Can only be called from FlightSuretyApp contract
     *
     */   
-    function registerAirline(address newAirline) external {
+    function registerAirline(address newAirline, string name) external requireIsOperational {
 
-        flights[newAirline].isRegistered = true;
-        flights[newAirline].statusCode = STATUS_CODE_UNKNOWN;
-        flights[newAirline].updatedTimestamp = now;        
-        flights[newAirline].airline = newAirline;
+        airlines[newAirline].isRegistered = true;
+        airlines[newAirline].airlineName = name;
+        airlines[newAirline].isFunded = false;        
+        airlines[newAirline].airline = newAirline;
 
-        flightArray.push(flights[newAirline]);
+        airlineArray.push(airlines[newAirline]); 
 
         tokenId ++;
     }
+
+    /**
+    * @dev Register a future flight for insuring.
+    *
+    */  
+    function registerFlight(string name, address airline) external requireIsOperational {
+
+        require(!flights[name].isRegistered, "The flight is already registered");
+
+        flights[name].flightName = name;
+        flights[name].isRegistered = true;
+        flights[name].statusCode = STATUS_CODE_UNKNOWN;
+        flights[name].updatedTimestamp = now;        
+        flights[name].airline = airline;
+
+        flightArray.push(flights[name]);
+    }
+
+    function changerFlightStatus(string name, address airline, uint256 timestamp, uint8 statusCode) external requireIsOperational {
+
+        require(flights[name].isRegistered, "The flight should be registered");
+        require(keccak256(abi.encodePacked(flights[name].flightName)) == keccak256(abi.encodePacked(name)), "The flight name should be identical");
+        require(flights[name].airline == airline, "The flight airline should be identical");
+
+        flights[name].statusCode = statusCode;
+        flights[name].updatedTimestamp = timestamp;        
+
+        //flightArray.push(flights[name]);
+    }    
 
    /**
     * @dev Buy insurance for a flight
     *
     */   
-    function buy() external payable {
-        
+    function buy(string flightName) external payable requireIsOperational {
+
+        require(this.isFlightRegistered(flightName), "The flight needs to be registered first.");
+        require(msg.value <= 1 ether, "Too much fund");
+
+        passengers[msg.sender].isRegistered = true;
+        passengers[msg.sender].passenger = msg.sender;
+        passengers[msg.sender].flightNumber = flightName;
+        passengers[msg.sender].fund += msg.value;
+
+        passengerArray.push(passengers[msg.sender]);
     }
 
     /**
      *  @dev Credits payouts to insurees
     */
-    function creditInsurees() external pure {
-
+    function creditInsurees(string flightName) external requireIsOperational {
+        
+        for (uint c = 0; c < passengerArray.length; c++) {
+            if (keccak256(abi.encodePacked(passengerArray[c].flightNumber)) == keccak256(abi.encodePacked(flightName)) && passengerArray[c].isRegistered) {
+                address passengerAddr = passengerArray[c].passenger;
+                uint value = passengers[passengerAddr].fund;
+                passengers[passengerAddr].fund = (value * 3)/2;
+                passengerArray[c] = passengers[passengerAddr];
+            }
+        }
     }
 
     /**
      *  @dev Transfers eligible payout funds to insuree
      *
     */
-    function pay() external pure {
+    function pay(uint256 amount) external requireIsOperational { 
 
+        // Checks
+        require(passengers[msg.sender].fund >= amount, "Insufficient fund");
+
+        // Effects
+        uint256 value = passengers[msg.sender].fund;
+        passengers[msg.sender].fund = value.sub(amount);
+
+        //Interraction
+        msg.sender.transfer(amount);
+
+        emit FundWithdrawn(msg.sender, amount); 
     }
+
 
    /**
     * @dev Initial funding for the insurance. Unless there are too many delayed flights
     *      resulting in insurance payouts, the contract should be self-sustaining
     *
     */   
-    function fund() public payable {
+    function fund() public payable requireIsOperational {
 
+        uint256 value = msg.value;
+        contractOwner.transfer(value);
     }
 
     function getFlightKey(address airline, string memory flight, uint256 timestamp) pure internal returns(bytes32) {

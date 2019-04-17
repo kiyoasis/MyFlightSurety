@@ -16,18 +16,22 @@ contract FlightSuretyApp {
     /*                                       DATA VARIABLES                                     */
     /********************************************************************************************/
     // Mostly moved to Data Contract
+    uint8 private constant STATUS_CODE_ON_TIME = 10;
+    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
+    uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
+    uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
+    uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
     address private contractOwner;          // Account used to deploy contract
 
     // Link to Data Contract
     FlightSuretyData flightSuretyData;
 
-    struct FlightVoteInfo {
+    struct AirlineVoteInfo {
         uint numOfVotes;
-        // Added for consensus
         address[] multiCalls; // = new address[](0);
     }
-    mapping(address => FlightVoteInfo) consensus;
+    mapping(address => AirlineVoteInfo) consensus;
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -68,11 +72,10 @@ contract FlightSuretyApp {
     *
     */
     constructor(address dataContract) public {
-        contractOwner = msg.sender;
 
+        contractOwner = msg.sender;
         flightSuretyData = FlightSuretyData(dataContract);
 
-        //this.registerAirline(firstAirline);
     }
 
     /********************************************************************************************/
@@ -87,37 +90,46 @@ contract FlightSuretyApp {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-  
    /**
     * @dev Add an airline to the registration queue
     *
     */   
-    function registerAirline(address newAirline) external requireIsOperational returns(bool success, uint256 votes) {
+    function registerAirline(address newAirline, string name) external requireIsOperational payable returns(bool success, uint256 votes) {
         success = false;
         require(!flightSuretyData.isAirline(newAirline), "The airline is already registered");
         require(flightSuretyData.isAirline(msg.sender) || msg.sender == contractOwner, "Caller is not registered");
+        require(msg.value >= 10 ether, "Insufficient funds");
 
         uint count = flightSuretyData.countRegisteredAirlies();
-        uint half = count/2;
-        if(count <= 4) {
-            flightSuretyData.registerAirline(newAirline);
+        uint half = 0;
+        if (count % 2 == 0) {
+            half = count/2;
+        } else {
+            uint temp = count/2;
+            half = temp + 1;
+        }
+        if(count < 4) {
+            flightSuretyData.registerAirline(newAirline, name);
+
+            flightSuretyData.fund();
+
             success = true;
         } else {
             bool isDuplicate = this.isAirlineVoted(newAirline);
-            // for(uint c = 0; c < multiCalls.length; c++) {
-            //     if (multiCalls[c] == msg.sender) {
-            //         isDuplicate = true;
-            //         break;
-            //     }
-            // }
+
             require(!isDuplicate, "Caller has already called this function.");
 
             consensus[newAirline].numOfVotes ++;
             consensus[newAirline].multiCalls.push(msg.sender);
             if (consensus[newAirline].numOfVotes >= half) {
-                 flightSuretyData.registerAirline(newAirline);
-                 //consensus[newAirline].multiCalls = new address[](0);
-                 success = true;
+                flightSuretyData.registerAirline(newAirline, name);
+
+                // consensus[newAirline].multiCalls = new address[](0);
+                // consensus[newAirline].numOfVotes = 0;
+
+                flightSuretyData.fund();
+
+                success = true;
             }
         }        
 
@@ -137,22 +149,18 @@ contract FlightSuretyApp {
 
         return isDuplicate;
     }
-
-
-   /**
-    * @dev Register a future flight for insuring.
-    *
-    */  
-    function registerFlight() external pure {
-
-    }
     
    /**
     * @dev Called after oracle has updated flight status
     *
     */  
-    function processFlightStatus(address airline, string memory flight, uint256 timestamp, uint8 statusCode) internal pure {
+    function processFlightStatus(address airline, string memory flight, uint256 timestamp, uint8 statusCode) internal {
 
+        flightSuretyData.changerFlightStatus(flight, airline, timestamp, statusCode);
+
+        if (statusCode == STATUS_CODE_LATE_AIRLINE) {
+            flightSuretyData.creditInsurees(flight);
+        }
     }
 
     // Generate a request for oracles to fetch flight information
@@ -297,8 +305,11 @@ contract FlightSuretyApp {
 }
 
 contract FlightSuretyData {
-    function registerAirline(address newAirline) external;
+    function registerAirline(address newAirline, string name) external;
     function isAirline(address airline) public view returns(bool);
     function countRegisteredAirlies() public view returns(uint);
     function isAirlineVoted(address airline) public view returns(bool);
+    function changerFlightStatus(string name, address airline, uint256 timestamp, uint8 statusCode) external;
+    function creditInsurees(string flightName) external;
+    function fund() public payable;
 }
