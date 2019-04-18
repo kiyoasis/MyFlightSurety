@@ -6,8 +6,6 @@ import './flightsurety.css';
 
 (async() => {
 
-    let count = null;
-
     let contract = new Contract('localhost', () => {
 
         // Read transaction
@@ -16,39 +14,41 @@ import './flightsurety.css';
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
 
-        contract.countRegisteredAirlies((error, result) => {
+        contract.getRegisteredAirlieInfo((error, result) => {
             console.log(error,result);
-            display('Number of Registered Airlines', 'Count the # of registered airlines', [ { label: '# of registered airlines:', error: error, value: result} ]);
+            display('Registered Airline', '', [ { label: 'Airline Name:', error: error, value: result[0]}, { label: 'Airline Address:', error: error, value: result[3]} ]);
         });
 
         contract.countRegisteredFlights((error, result) => {
             console.log(error,result);
-            display('Number of Registered Flights', 'Count the # of registered flights', [ { label: '# of registered flights:', error: error, value: result} ]);
-            count = result;
-        });  
 
-        // contract.getFlightInfo('test', (error, result) => {
-        //     console.log(error,result);
-        //     display('Number of Registered Flights', 'Count the # of registered flights', [ { label: '# of registered flights:', error: error, value: result} ]);
-            
-        // });  
+            //var element = [];
+            for (var index = 0; index < result; index++) {
+                contract.getRegisteredFlightInfo(index, (error, res) => {
+                    console.log(error,res);
+                    display('Registered Flights', 'Number of registered flights: ' + result, [ { label: 'Flight Name:', error: error, value: res[0] },  
+                    { label: 'Status Code:', error: error, value: res[2] },{ label: 'Updated Timestamp:', error: error, value: res[3] },{ label: 'Flight Address:', error: error, value: res[4] } ]);
+                });  
+                
+            }
+            //console.log(element);
+        });
 
+        contract.getPassengerInfo((error, result) => {
+            console.log(error,result);
+            display('My Passenger Info', '', [ { label: 'Purchase Status:', error: error, value: result[0]}, { label: 'My Address:', error: error, value: result[1]}, { label: 'My Fund:', error: error, value: result[2]}, { label: 'My Flight:', error: error, value: result[3]} ]);
+        });
 
-        // contract.registerFlight('JAL1234', 'address', (error, result) => {
-        //     //display('Oracles', 'register flight oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
-        // }); 
+        // DOM.elid('create-airline').addEventListener('click', () => {          
+        //     let address = DOM.elid('airline-address').value;
+        //     let name = DOM.elid('airline-name').value;
+        //     //alert(name);
+        //     contract.registerAirline(address, name, (error, result) => {
+        //         console.log(error, result);
+        //         //display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
+        //     });
 
-        DOM.elid('create-airline').addEventListener('click', () => {
-            
-            let address = DOM.elid('airline-address').value;
-            let name = DOM.elid('airline-name').value;
-
-            //alert(name);
-            contract.registerAirline(address, name, (error, result) => {
-                //display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
-            });
-
-        })
+        // })
 
         DOM.elid('register-flight').addEventListener('click', () => {
             
@@ -57,6 +57,7 @@ import './flightsurety.css';
 
             //alert(address);
             contract.registerFlight(name, address, (error, result) => {
+                console.log(error, result);
                 //display('Flight', 'register flight ', [ { label: 'Fetch Flight', error: error, value: result + ' ' + result} ]);
             });
 
@@ -65,10 +66,10 @@ import './flightsurety.css';
         DOM.elid('buy-flight').addEventListener('click', () => {
             
             let name = DOM.elid('flight-number-buy').value;
+            let amount = DOM.elid('buy-amount').value;
 
-            //alert(name);
-            contract.buy(name, (error, result) => {
-                //display('Flight', 'register flight ', [ { label: 'Fetch Flight', error: error, value: result + ' ' + result} ]);
+            contract.buy(name, amount, (error, result) => {
+                console.log(error, result);
             });
 
         })

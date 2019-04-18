@@ -60,6 +60,20 @@ export default class Contract {
             .call({ from: self.owner}, callback);
     }
 
+    getRegisteredAirlieInfo(callback) {
+        let self = this;
+        self.flightSuretyData.methods
+            .getRegisteredAirlieInfo(0)
+            .call({ from: self.owner}, callback);
+    }
+
+    getRegisteredFlightInfo(index, callback) {
+        let self = this;
+        self.flightSuretyData.methods
+            .getRegisteredFlightInfo(index)
+            .call({ from: self.owner}, callback);
+    }
+
     countRegisteredFlights(callback) {
         let self = this;
         self.flightSuretyData.methods
@@ -72,7 +86,7 @@ export default class Contract {
         //alert(10 * (new BigNumber(10)).pow(18));
         self.flightSuretyApp.methods
         .registerAirline(address, name)
-        .send({ from: self.airlines[0], value: 10 * (new BigNumber(10)).pow(18) }, (error, result) => {
+        .send({ from: self.owner, value: 10000000000000000000}, (error, result) => {
             callback(error);
         });
     }
@@ -87,11 +101,18 @@ export default class Contract {
         });
     }
 
-    buy(name, callback) {
+    getPassengerInfo(callback) {
+        let self = this;
+        self.flightSuretyData.methods
+            .getPassengerInfo(self.passengers[0])
+            .call({ from: self.owner}, callback);
+    }
+
+    buy(name, amount, callback) {
         let self = this;
         self.flightSuretyData.methods
         .buy(name)
-        .send({ from: self.passengers[0], gas:600000, value: 100}, (error, result) => {
+        .send({ from: self.passengers[0], gas:600000, value: amount}, (error, result) => {
             callback(error);
         });
     }
