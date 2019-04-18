@@ -23,6 +23,9 @@ To use the dapp:
 `truffle migrate`
 `npm run dapp`
 
+To test:
+`ganache-cli -a 50` and in another window type `npm test`
+
 To view dapp:
 
 `http://localhost:8000`
