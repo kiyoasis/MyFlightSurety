@@ -63,7 +63,7 @@ contract FlightSuretyData {
     constructor() public {
         contractOwner = msg.sender;
 
-        address newAirline = 0xee9fd8f530906e74c9639b107837dba24e542fa8;
+        address newAirline = msg.sender; //0xee9fd8f530906e74c9639b107837dba24e542fa8;
         airlines[newAirline].isRegistered = true;
         airlines[newAirline].airlineName = "JAL";
         airlines[newAirline].isFunded = false;
@@ -133,6 +133,27 @@ contract FlightSuretyData {
         return airlineArray.length;
     }
 
+    function getRegisteredAirlieInfo(uint index) public view returns(string, bool, bool, address) {
+ 
+        return (
+            airlineArray[index].airlineName,
+            airlineArray[index].isRegistered,
+            airlineArray[index].isFunded,
+            airlineArray[index].airline
+        );
+    }
+
+    function getRegisteredFlightInfo(uint index) public view returns(string, bool, uint, uint, address) {
+ 
+        return (
+            flightArray[index].flightName,
+            flightArray[index].isRegistered,
+            flightArray[index].statusCode,
+            flightArray[index].updatedTimestamp,
+            flightArray[index].airline
+        );
+    }
+
     function countRegisteredFlights() public view returns(uint) {
         return flightArray.length;
     }
@@ -196,7 +217,7 @@ contract FlightSuretyData {
         flightArray.push(flights[name]);
     }
 
-    function changerFlightStatus(string name, address airline, uint256 timestamp, uint8 statusCode) external requireIsOperational {
+    function changeFlightStatus(string name, address airline, uint256 timestamp, uint8 statusCode) external requireIsOperational {
 
         require(flights[name].isRegistered, "The flight should be registered");
         require(keccak256(abi.encodePacked(flights[name].flightName)) == keccak256(abi.encodePacked(name)), "The flight name should be identical");
@@ -267,8 +288,15 @@ contract FlightSuretyData {
     */   
     function fund() public payable requireIsOperational {
 
+        uint requiredFund = 10 ether;
         uint256 value = msg.value;
-        contractOwner.transfer(value);
+        uint refund = 0;
+
+        if(msg.value > requiredFund) {
+            refund = value.sub(requiredFund);
+        }
+        
+        contractOwner.transfer(msg.value - refund);
     }
 
     function getFlightKey(address airline, string memory flight, uint256 timestamp) pure internal returns(bytes32) {

@@ -154,9 +154,9 @@ contract FlightSuretyApp {
     * @dev Called after oracle has updated flight status
     *
     */  
-    function processFlightStatus(address airline, string memory flight, uint256 timestamp, uint8 statusCode) internal {
+    function processFlightStatus(address airline, string flight, uint256 timestamp, uint8 statusCode) external {
 
-        flightSuretyData.changerFlightStatus(flight, airline, timestamp, statusCode);
+        flightSuretyData.changeFlightStatus(flight, airline, timestamp, statusCode);
 
         if (statusCode == STATUS_CODE_LATE_AIRLINE) {
             flightSuretyData.creditInsurees(flight);
@@ -261,7 +261,7 @@ contract FlightSuretyApp {
             emit FlightStatusInfo(airline, flight, timestamp, statusCode);
 
             // Handle flight status as appropriate
-            processFlightStatus(airline, flight, timestamp, statusCode);
+            this.processFlightStatus(airline, flight, timestamp, statusCode);
         }
     }
 
@@ -309,7 +309,7 @@ contract FlightSuretyData {
     function isAirline(address airline) public view returns(bool);
     function countRegisteredAirlies() public view returns(uint);
     function isAirlineVoted(address airline) public view returns(bool);
-    function changerFlightStatus(string name, address airline, uint256 timestamp, uint8 statusCode) external;
+    function changeFlightStatus(string name, address airline, uint256 timestamp, uint8 statusCode) external;
     function creditInsurees(string flightName) external;
     function fund() public payable;
 }
