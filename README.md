@@ -7,33 +7,47 @@ FlightSurety is a sample application project for Udacity's Blockchain course.
 This repository contains Smart Contract code in Solidity (using Truffle), tests (also using Truffle), dApp scaffolding (using HTML, CSS and JS) and server app scaffolding.
 
 To install, download or clone the repo, then:
-
 `npm install`
+
+Make sure that smart contracts can be compiled:
 `truffle compile`
 
-## Develop Client
+## Test Smart Contracts
 
 To run truffle tests:
 
+First, in the terminal, run ganache-cli:
+`ganache-cli -a 50`
+<!-- `ganache-cli -m "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat" -a 50`  -->
+
+And then migrate the compiled contracts:
+`truffle migrate`
+
+In another window, type 
 `truffle test ./test/flightSurety.js`
+for testing Flight Surety contracts.
+
+If you want to test Oracles, type
 `truffle test ./test/oracles.js`
 
-To use the dapp:
+## Develop Client
 
-`truffle migrate`
+Make sure the contracrts are compiled and migrated on ganache-cli. 
+
+To use the dapp:
 `npm run dapp`
 
-To test:
-`ganache-cli -a 50` and in another window type `npm test`
-
 To view dapp:
-
 `http://localhost:8000`
 
 ## Develop Server
 
+Make sure the contracrts are compiled and migrated on ganache-cli.
+
+To use oracle server:
 `npm run server`
-`truffle test ./test/oracles.js`
+
+<!-- If you want to test Oracles, type `truffle test ./test/oracles.js` -->
 
 ## Deploy
 
@@ -42,6 +56,11 @@ To build dapp for prod:
 
 Deploy the contents of the ./dapp folder
 
+## How to test dapp
+Your first need to luanch ganache-cli, dapp, and oracle server as described above.
+Please refere to the video:
+
+'https://www.youtube.com/watch?v=TQyzAZl1DJc&t=16s'
 
 ## Resources
 
