@@ -35,12 +35,8 @@ export default class Contract {
             }
 
             console.log(this.passengers);
-
-            // this.flightSuretyData.methods
-            // .registerFlight('JAL1234', this.airlines[0])
-            // .send({from: this.airlines[0]});
             
-            //registerFlight('JAL1234', this.airlines[0]), callback);
+            console.log(this.owner);
 
             callback();
         });
@@ -60,10 +56,10 @@ export default class Contract {
             .call({ from: self.owner}, callback);
     }
 
-    getRegisteredAirlieInfo(callback) {
+    getRegisteredAirlieInfo(index, callback) {
         let self = this;
         self.flightSuretyData.methods
-            .getRegisteredAirlieInfo(0)
+            .getRegisteredAirlieInfo(index)
             .call({ from: self.owner}, callback);
     }
 
@@ -83,10 +79,10 @@ export default class Contract {
 
     registerAirline(address, name, callback) {
         let self = this;
-        //alert(10 * (new BigNumber(10)).pow(18));
+        let fund = 10 * (new BigNumber(10)).pow(18);
         self.flightSuretyApp.methods
         .registerAirline(address, name)
-        .send({ from: self.owner, value: 10000000000000000000}, (error, result) => {
+        .send({ from: self.owner, value: fund, gas:600000}, (error, result) => {
             callback(error);
         });
     }
@@ -117,10 +113,10 @@ export default class Contract {
         });
     }
 
-    fetchFlightStatus(flight, callback) {
+    fetchFlightStatus(address, flight, callback) {
         let self = this;
         let payload = {
-            airline: self.airlines[0],
+            airline: address, //self.airlines[0],
             flight: flight,
             timestamp: Math.floor(Date.now() / 1000)
         } 
